@@ -1,30 +1,55 @@
-FROM nvidia/cuda:11.4.2-runtime-ubuntu20.04
+FROM huggingface/transformers-pytorch-latest-gpu
 
-# install ubuntu dependencies
-ENV DEBIAN_FRONTEND=noninteractive 
+# Set work directory
+
+WORKDIR /workspace
+
+RUN pip3 install torch==1.10.2+cu113 torchvision==0.11.3+cu113 torchaudio==0.10.2+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+
+RUN pip3 install git+https://github.com/huggingface/transformers
+
+RUN pip3 install --upgrade nvidia-ml-py3==7.352.0
+
+RUN pip3 install --upgrade sentence-transformers==2.2.2
+
+RUN pip3 install --upgrade accelerate==0.14.0
+
+RUN pip3 install --upgrade codecarbon==2.1.4
+
+RUN pip3 install --upgrade streamlit==1.14.0
+
+RUN pip3 install --upgrade wget==3.2
+
+RUN pip3 install --upgrade tensorflow==2.10.0
+
+RUN pip3 install --upgrade tensorflow-datasets==4.7.0
+
+RUN pip3 install --upgrade scikit-learn==1.1.3
+
+RUN pip3 install --upgrade nltk==3.7
+
+RUN pip3 install --upgrade stqdm==0.0.4
+
+RUN pip3 install --upgrade datasets==2.6.1
+
+RUN pip3 install --upgrade wandb==0.13.5
+
 RUN apt-get update && \
     apt-get -y install python3-pip xvfb ffmpeg git build-essential python-opengl
-RUN ln -s /usr/bin/python3 /usr/bin/python
-
-# install python dependencies
-RUN mkdir cleanrl_utils && touch cleanrl_utils/__init__.py
-RUN pip install poetry --upgrade
-COPY pyproject.toml pyproject.toml
-COPY poetry.lock poetry.lock
-RUN poetry install
-
-# install mujoco_py
+    
 RUN apt-get -y install wget unzip software-properties-common \
     libgl1-mesa-dev \
     libgl1-mesa-glx \
     libglew-dev \
     libosmesa6-dev patchelf
-RUN poetry install -E "atari mujoco_py"
-RUN poetry run python -c "import mujoco_py"
 
-COPY entrypoint.sh /usr/local/bin/
-RUN chmod 777 /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# Copy requirements.txt into the image
+COPY requirements.txt /workspace/requirements.txt
 
-# copy local files
-COPY ./cleanrl /cleanrl
+COPY requirements-atari.txt /workspace/requirements-atari.txt
+
+# Install the Python packages listed in requirements.txt
+RUN python3 -m pip install --no-cache-dir -r /workspace/requirements.txt
+
+RUN python3 -m pip install --no-cache-dir -r /workspace/requirements-atari.txt
+
